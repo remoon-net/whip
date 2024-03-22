@@ -59,10 +59,21 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		srv.RegisterHandler(w, r, peer)
 		return
 	}
-	peer, _, _ := r.BasicAuth()
+	peer, pwd, _ := r.BasicAuth()
+	if peer == "" {
+		if c, err := r.Cookie("xhe-peer-id"); err == nil {
+			peer = c.Value
+		}
+	}
 	if peer == "" {
 		http.Error(w, "unkown which peer", http.StatusUnauthorized)
 		return
+	}
+	if pwd == "xhe" {
+		http.SetCookie(w, &http.Cookie{
+			Name:  "xhe-peer-id",
+			Value: peer,
+		})
 	}
 	srv.linkHandler(w, r, peer)
 }
