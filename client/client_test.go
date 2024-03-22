@@ -9,7 +9,7 @@ import (
 
 	"github.com/shynome/err0/try"
 	"github.com/stretchr/testify/assert"
-	"remoon.net/link/server"
+	"remoon.net/wslink/server"
 )
 
 var testEndpoint string
