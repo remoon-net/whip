@@ -44,7 +44,7 @@ var cCmd = &cobra.Command{
 		for {
 			sess, err := client.Connect(ctx, args[0], args[1])
 			if err != nil {
-				if errors.Is(ctx.Err(), context.Canceled) {
+				if errors.Is(err, context.Canceled) {
 					return
 				}
 				log.Println("connect wrong", err)
