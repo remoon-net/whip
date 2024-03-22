@@ -51,12 +51,12 @@ var cCmd = &cobra.Command{
 				time.Sleep(time.Second)
 				continue
 			}
-			defer sess.Close()
 			log.Println("连接成功")
 			select {
 			case <-sess.CloseChan():
 				log.Println("连接断开, 准备重连中")
 			case <-ctx.Done():
+				sess.Close()
 				return
 			}
 		}
