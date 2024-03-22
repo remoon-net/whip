@@ -74,6 +74,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if peer == "" {
+		w.Header().Set("WWW-Authenticate", `Basic`)
 		http.Error(w, "unkown which peer", http.StatusUnauthorized)
 		return
 	}
