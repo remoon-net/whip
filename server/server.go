@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/docker/go-units"
 	"github.com/hashicorp/yamux"
 	"github.com/maypok86/otter"
 	"github.com/shynome/err0"
@@ -23,10 +24,13 @@ type Server struct {
 
 var _ http.Handler = (*Server)(nil)
 
-func New() *Server {
+func New(size int) *Server {
+	if size == 0 {
+		size = 500 * units.MiB
+	}
 	hub := try.To1(
 		otter.
-			MustBuilder[string, *httputil.ReverseProxy](10_000).
+			MustBuilder[string, *httputil.ReverseProxy](size).
 			Build(),
 	)
 	srv := &Server{

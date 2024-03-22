@@ -16,7 +16,7 @@ import (
 var testEndpoint string
 
 func TestMain(m *testing.M) {
-	srv := server.New()
+	srv := server.New(0)
 	l := try.To1(net.Listen("tcp", "127.0.0.1:0"))
 	defer l.Close()
 	go http.Serve(l, srv)
