@@ -40,16 +40,28 @@ func New(size int) *Server {
 }
 
 func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
-	path = strings.TrimPrefix(path, "/")
-	chunk := strings.SplitN(path, "/", 2)
-	peer := chunk[0]
-	if b, _ := hex.DecodeString(peer); len(b) != 32 {
-		http.Error(w, "peer id 不规范", http.StatusBadRequest)
+	subprotocol := r.Header.Get("Sec-Websocket-Protocol")
+	if strings.HasPrefix(subprotocol, "link") {
+		protocols := strings.Split(subprotocol, ",")
+		if len(protocols) != 2 {
+			http.Error(w, "unkown which peer", http.StatusBadRequest)
+			return
+		}
+		if protocols[0] != "link" {
+			http.Error(w, "bad subprotocol", http.StatusBadRequest)
+			return
+		}
+		peer := protocols[1]
+		if b, _ := hex.DecodeString(peer); len(b) != 32 {
+			http.Error(w, "peer id 不规范", http.StatusBadRequest)
+			return
+		}
+		srv.RegisterHandler(w, r, peer)
 		return
 	}
-	if len(chunk) == 1 || chunk[1] == "" {
-		srv.RegisterHandler(w, r, peer)
+	peer, _, _ := r.BasicAuth()
+	if peer == "" {
+		http.Error(w, "unkown which peer", http.StatusUnauthorized)
 		return
 	}
 	srv.linkHandler(w, r, peer)
@@ -67,6 +79,7 @@ func (srv *Server) RegisterHandler(w http.ResponseWriter, r *http.Request, peer 
 	ctx := r.Context()
 	conn := websocket.NetConn(ctx, socket, websocket.MessageBinary)
 	sess := try.To1(yamux.Client(conn, nil))
+	defer sess.Close()
 	endpoint := fmt.Sprintf("http://yamux.proxy/")
 	target := try.To1(url.Parse(endpoint))
 	proxy := httputil.NewSingleHostReverseProxy(target)

@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -20,11 +19,12 @@ func TestMain(m *testing.M) {
 	l := try.To1(net.Listen("tcp", "127.0.0.1:0"))
 	defer l.Close()
 	go http.Serve(l, srv)
-	testEndpoint = fmt.Sprintf("http://%s/31ce765283ad48ccf14a827bb4a03e5e2965ce1e6c774a76de09f825b1d08219", l.Addr().String())
+	testEndpoint = l.Addr().String()
 	m.Run()
 }
 
 func TestClient(t *testing.T) {
+	const peer = "31ce765283ad48ccf14a827bb4a03e5e2965ce1e6c774a76de09f825b1d08219"
 	for _, i := range []string{"1", "2"} {
 		func() {
 			mux := http.NewServeMux()
@@ -39,7 +39,7 @@ func TestClient(t *testing.T) {
 			})
 			client := New(mux)
 			ctx := context.Background()
-			sess := try.To1(client.Connect(ctx, testEndpoint))
+			sess := try.To1(client.Connect(ctx, "http://"+testEndpoint, peer))
 			defer sess.Close()
 
 			for _, c := range []struct {
@@ -50,8 +50,9 @@ func TestClient(t *testing.T) {
 				{"/y", "yyyy" + i},
 				{"/z", "zzzz" + i},
 				{"/j", "zzzz" + i},
+				{"/", "zzzz" + i},
 			} {
-				endpoint := testEndpoint + c.path
+				endpoint := "http://" + peer + "@" + testEndpoint + c.path
 				resp := try.To1(http.Get(endpoint))
 				defer resp.Body.Close()
 				body := try.To1(io.ReadAll(resp.Body))
