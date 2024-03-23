@@ -14,5 +14,5 @@ go install remoon.net/wslink@latest
 # 注意: peer_id 需要是长度为64位的hex字符串
 wslink c ws://link.host peer_id http://127.0.0.1:80
 # 访问
-ccurl http://peer_id@link.host
+curl http://peer_id@link.host
 ```
