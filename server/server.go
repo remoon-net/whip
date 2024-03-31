@@ -92,6 +92,7 @@ func (srv *Server) RegisterHandler(w http.ResponseWriter, r *http.Request, peer 
 	}
 	socket := try.To1(websocket.Accept(w, r, &websocket.AcceptOptions{
 		OriginPatterns: []string{"*"},
+		Subprotocols:   []string{"link"},
 	}))
 	ctx := r.Context()
 	conn := websocket.NetConn(ctx, socket, websocket.MessageBinary)
