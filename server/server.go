@@ -52,6 +52,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		peer := protocols[1]
+		peer = strings.TrimSpace(peer)
 		if b, _ := hex.DecodeString(peer); len(b) != 32 {
 			http.Error(w, "peer id 不规范", http.StatusBadRequest)
 			return
@@ -89,7 +90,9 @@ func (srv *Server) RegisterHandler(w http.ResponseWriter, r *http.Request, peer 
 	if hub.Has(peer) {
 		return fmt.Errorf("该地址已被使用")
 	}
-	socket := try.To1(websocket.Accept(w, r, nil))
+	socket := try.To1(websocket.Accept(w, r, &websocket.AcceptOptions{
+		OriginPatterns: []string{"*"},
+	}))
 	ctx := r.Context()
 	conn := websocket.NetConn(ctx, socket, websocket.MessageBinary)
 	sess := try.To1(yamux.Client(conn, nil))
