@@ -33,7 +33,7 @@ func (c *Client) Connect(ctx context.Context, link string, id string) (sess *yam
 	})
 	if err != nil {
 		if resp != nil && (400 <= resp.StatusCode && resp.StatusCode <= 499) {
-			return nil, &ServerRejected{err, resp}
+			return nil, NewServerRejected(err, resp)
 		}
 		return nil, err
 	}
@@ -47,4 +47,8 @@ func (c *Client) Connect(ctx context.Context, link string, id string) (sess *yam
 type ServerRejected struct {
 	error
 	Response *http.Response
+}
+
+func NewServerRejected(err error, resp *http.Response) error {
+	return &ServerRejected{err, resp}
 }
