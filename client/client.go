@@ -28,11 +28,23 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (c *Client) Connect(ctx context.Context, link string, id string) (sess *yamux.Session, err error) {
 	defer err0.Then(&err, nil, nil)
-	socket, _ := try.To2(websocket.Dial(ctx, link, &websocket.DialOptions{
+	socket, resp, err := websocket.Dial(ctx, link, &websocket.DialOptions{
 		Subprotocols: []string{"link", id},
-	}))
+	})
+	if err != nil {
+		if resp != nil && (400 <= resp.StatusCode && resp.StatusCode <= 499) {
+			return nil, &ServerRejected{err, resp}
+		}
+		return nil, err
+	}
 	conn := websocket.NetConn(ctx, socket, websocket.MessageBinary)
 	sess = try.To1(yamux.Server(conn, nil))
 	go http.Serve(sess, c)
 	return sess, nil
+}
+
+// ServerRejected Error: Server Response Status Code bewteen [400,499]
+type ServerRejected struct {
+	error
+	Response *http.Response
 }
