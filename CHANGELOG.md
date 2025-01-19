@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.3.0] - 2025-01-19
+
+- 添加 ServerRejected 错误, 出现此错误时意味着不要重试
+
 ## [0.2.1] - 2024-04-01
 
 - 返回 Subprotocols, 浏览器需要至少命中一个 Subprotocols 才可保持链接
