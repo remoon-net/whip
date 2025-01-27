@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/shynome/err0/try"
 	"github.com/stretchr/testify/assert"
+	"nhooyr.io/websocket"
 	"remoon.net/wslink/server"
 )
 
@@ -37,6 +39,12 @@ func TestClient(t *testing.T) {
 			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 				io.WriteString(w, "zzzz"+i)
 			})
+			mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+				socket, _ := websocket.Accept(w, r, nil)
+				ctx := r.Context()
+				socket.Write(ctx, websocket.MessageText, []byte("hello world"))
+				<-ctx.Done()
+			})
 			client := New(mux)
 			ctx := context.Background()
 			sess := try.To1(client.Connect(ctx, "http://"+testEndpoint, peer))
@@ -58,6 +66,22 @@ func TestClient(t *testing.T) {
 				body := try.To1(io.ReadAll(resp.Body))
 				assert.Equal(t, c.expect, string(body))
 			}
+
+			func() {
+				ctx, cancel := context.WithCancel(ctx)
+				defer cancel()
+				endpoint := fmt.Sprintf("ws://%s/ws", testEndpoint)
+				socket, resp, err := websocket.Dial(ctx, endpoint, &websocket.DialOptions{
+					Subprotocols: []string{"peer", peer},
+				})
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				t.Log(resp)
+				_, msg := try.To2(socket.Read(ctx))
+				assert.Equal(t, string(msg), string("hello world"))
+			}()
 		}()
 	}
 }

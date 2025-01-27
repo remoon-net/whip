@@ -41,14 +41,10 @@ func New(size int) *Server {
 
 func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	subprotocol := r.Header.Get("Sec-Websocket-Protocol")
-	if strings.HasPrefix(subprotocol, "link") {
+	if strings.HasPrefix(subprotocol, "link,") {
 		protocols := strings.Split(subprotocol, ",")
 		if len(protocols) != 2 {
 			http.Error(w, "unkown which peer", http.StatusBadRequest)
-			return
-		}
-		if protocols[0] != "link" {
-			http.Error(w, "bad subprotocol", http.StatusBadRequest)
 			return
 		}
 		peer := protocols[1]
@@ -61,7 +57,14 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var peer string
-	if c, err := r.Cookie("xhe-peer-id"); err == nil {
+	if strings.HasPrefix(subprotocol, "peer,") {
+		protocols := strings.Split(subprotocol, ",")
+		if len(protocols) != 2 {
+			http.Error(w, "unkown which peer", http.StatusBadRequest)
+			return
+		}
+		peer = strings.TrimSpace(protocols[1])
+	} else if c, err := r.Cookie("xhe-peer-id"); err == nil {
 		peer = c.Value
 	}
 	if peer == "" {
