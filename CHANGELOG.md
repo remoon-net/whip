@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.0] - 2025-01-30
+
+- 使用 websocket close code 避免在浏览器端抓不到 resp 错误信息的问题
+
 ## [0.3.3] - 2025-01-29
 
 - 支持 Subprotocols
