@@ -7,7 +7,9 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/textproto"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/docker/go-units"
@@ -40,15 +42,14 @@ func New(size int) *Server {
 }
 
 func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	subprotocol := r.Header.Get("Sec-Websocket-Protocol")
-	if strings.HasPrefix(subprotocol, "link,") {
-		protocols := strings.Split(subprotocol, ",")
+	protocols := headerTokens(r.Header, "Sec-Websocket-Protocol")
+	if s := indexFunc(protocols, "link"); s != -1 {
+		protocols := protocols[s:]
 		if len(protocols) != 2 {
 			http.Error(w, "unkown which peer", http.StatusBadRequest)
 			return
 		}
 		peer := protocols[1]
-		peer = strings.TrimSpace(peer)
 		if b, _ := hex.DecodeString(peer); len(b) != 32 {
 			http.Error(w, "peer id 不规范", http.StatusBadRequest)
 			return
@@ -57,13 +58,13 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var peer string
-	if strings.HasPrefix(subprotocol, "peer,") {
-		protocols := strings.Split(subprotocol, ",")
+	if s := indexFunc(protocols, "peer"); s != -1 {
+		protocols := protocols[s:]
 		if len(protocols) != 2 {
 			http.Error(w, "unkown which peer", http.StatusBadRequest)
 			return
 		}
-		peer = strings.TrimSpace(protocols[1])
+		peer = protocols[1]
 	} else if c, err := r.Cookie("xhe-peer-id"); err == nil {
 		peer = c.Value
 	}
@@ -127,9 +128,23 @@ func (srv *Server) linkHandler(w http.ResponseWriter, r *http.Request, peer stri
 	if !ok || proxy == nil {
 		return fmt.Errorf("不存在")
 	}
-	prefix := "/" + peer
-	r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
-	r.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, prefix)
 	proxy.ServeHTTP(w, r)
 	return nil
+}
+
+func headerTokens(h http.Header, key string) []string {
+	key = textproto.CanonicalMIMEHeaderKey(key)
+	var tokens []string
+	for _, v := range h[key] {
+		v = strings.TrimSpace(v)
+		for _, t := range strings.Split(v, ",") {
+			t = strings.TrimSpace(t)
+			tokens = append(tokens, t)
+		}
+	}
+	return tokens
+}
+
+func indexFunc(s []string, t string) int {
+	return slices.IndexFunc(s, func(s string) bool { return strings.EqualFold(s, t) })
 }
