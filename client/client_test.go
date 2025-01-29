@@ -47,7 +47,7 @@ func TestClient(t *testing.T) {
 			})
 			client := New(mux)
 			ctx := context.Background()
-			sess := try.To1(client.Connect(ctx, "http://"+testEndpoint, peer))
+			sess := try.To1(client.Connect(ctx, fmt.Sprintf("http://%s@%s", peer, testEndpoint)))
 			defer sess.Close()
 
 			for _, c := range []struct {
