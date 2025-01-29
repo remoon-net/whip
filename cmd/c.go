@@ -20,11 +20,11 @@ import (
 
 // cCmd represents the c command
 var cCmd = &cobra.Command{
-	Use:   "c [ws] [peer] [http server]",
+	Use:   "c [ws] [http server]",
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 3 {
+		if len(args) != 2 {
 			log.Println("参数不完整")
 			return
 		}
@@ -42,7 +42,7 @@ var cCmd = &cobra.Command{
 			cancel()
 		}()
 		for {
-			sess, err := client.Connect(ctx, args[0], args[1])
+			sess, err := client.Connect(ctx, args[0])
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
 					return
