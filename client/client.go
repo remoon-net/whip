@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/hashicorp/yamux"
@@ -28,27 +29,36 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (c *Client) Connect(ctx context.Context, link string, id string) (sess *yamux.Session, err error) {
 	defer err0.Then(&err, nil, nil)
-	socket, resp, err := websocket.Dial(ctx, link, &websocket.DialOptions{
+	socket, _, err := websocket.Dial(ctx, link, &websocket.DialOptions{
 		Subprotocols: []string{"link", id},
 	})
 	if err != nil {
-		if resp != nil && (400 <= resp.StatusCode && resp.StatusCode <= 499) {
-			return nil, NewServerRejected(err, resp)
-		}
 		return nil, err
 	}
 	conn := websocket.NetConn(ctx, socket, websocket.MessageBinary)
 	sess = try.To1(yamux.Server(conn, nil))
 	go http.Serve(sess, c)
+	if err = socket.Ping(ctx); err == nil {
+		// do nothing
+	} else if sess, err := sess.AcceptStream(); err != nil {
+		var ce websocket.CloseError
+		if errors.As(err, &ce) && ((3400 <= ce.Code && ce.Code <= 3499) || (4400 <= ce.Code && ce.Code <= 4499)) {
+			return nil, NewServerRejected(ce)
+		}
+		return nil, err
+	} else {
+		sess.Close() // 永远也不会到达这里, 但还是写上这个
+	}
 	return sess, nil
 }
 
 // ServerRejected Error: Server Response Status Code bewteen [400,499]
 type ServerRejected struct {
-	error
-	Response *http.Response
+	websocket.CloseError
 }
 
-func NewServerRejected(err error, resp *http.Response) error {
-	return &ServerRejected{err, resp}
+func NewServerRejected(err websocket.CloseError) error {
+	return &ServerRejected{
+		CloseError: err,
+	}
 }

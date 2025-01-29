@@ -90,14 +90,14 @@ func (srv *Server) RegisterHandler(w http.ResponseWriter, r *http.Request, peer 
 	defer err0.Then(&err, nil, func() {
 		http.Error(w, err.Error(), 500)
 	})
-	hub := srv.hub
-	if hub.Has(peer) {
-		return fmt.Errorf("该地址已被使用")
-	}
 	socket := try.To1(websocket.Accept(w, r, &websocket.AcceptOptions{
 		OriginPatterns: []string{"*"},
 		Subprotocols:   []string{"link"},
 	}))
+	hub := srv.hub
+	if hub.Has(peer) {
+		return socket.Close(4000+http.StatusLocked, "该地址已被使用")
+	}
 	ctx := r.Context()
 	conn := websocket.NetConn(ctx, socket, websocket.MessageBinary)
 	sess := try.To1(yamux.Client(conn, nil))
@@ -112,7 +112,7 @@ func (srv *Server) RegisterHandler(w http.ResponseWriter, r *http.Request, peer 
 	}
 	ok := hub.SetIfAbsent(peer, proxy)
 	if !ok {
-		return fmt.Errorf("容量不够了")
+		return socket.Close(4000+http.StatusTooManyRequests, "容量不够了")
 	}
 	defer hub.Delete(peer)
 	<-sess.CloseChan()
