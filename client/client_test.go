@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/shynome/err0/try"
+	"github.com/shynome/websocket"
 	"github.com/stretchr/testify/assert"
-	"nhooyr.io/websocket"
 	"remoon.net/wslink/server"
 )
 

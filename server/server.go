@@ -17,7 +17,7 @@ import (
 	"github.com/maypok86/otter"
 	"github.com/shynome/err0"
 	"github.com/shynome/err0/try"
-	"nhooyr.io/websocket"
+	"github.com/shynome/websocket"
 )
 
 type Server struct {

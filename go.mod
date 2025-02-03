@@ -8,9 +8,9 @@ require (
 	github.com/hashicorp/yamux v0.1.1
 	github.com/maypok86/otter v1.2.0
 	github.com/shynome/err0 v0.1.0
+	github.com/shynome/websocket v1.9.1
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
-	nhooyr.io/websocket v1.8.10
 )
 
 require (
