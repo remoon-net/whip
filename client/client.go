@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/yamux"
 	"github.com/shynome/err0"
 	"github.com/shynome/err0/try"
-	"nhooyr.io/websocket"
+	"github.com/shynome/websocket"
 )
 
 type Client struct {
@@ -40,16 +40,17 @@ func (c *Client) Connect(ctx context.Context, link string) (sess *yamux.Session,
 	conn := websocket.NetConn(ctx, socket, websocket.MessageBinary)
 	sess = try.To1(yamux.Server(conn, nil))
 	go http.Serve(sess, c)
-	if err = socket.Ping(ctx); err == nil {
-		// do nothing
-	} else if sess, err := sess.AcceptStream(); err != nil {
-		var ce websocket.CloseError
-		if errors.As(err, &ce) && ((3400 <= ce.Code && ce.Code <= 3499) || (4400 <= ce.Code && ce.Code <= 4499)) {
-			return nil, NewServerRejected(ce)
+	if _, err := sess.Ping(); err != nil {
+		if stream, err := sess.AcceptStream(); err != nil {
+			var ce websocket.CloseError
+			if errors.As(err, &ce) && ((3400 <= ce.Code && ce.Code <= 3499) || (4400 <= ce.Code && ce.Code <= 4499)) {
+				return nil, NewServerRejected(ce)
+			}
+			return nil, err
+		} else {
+			stream.Close() // 永远也不会到达这里, 但还是写上这个
 		}
 		return nil, err
-	} else {
-		sess.Close() // 永远也不会到达这里, 但还是写上这个
 	}
 	return sess, nil
 }
